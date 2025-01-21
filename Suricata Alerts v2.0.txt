@@ -1,0 +1,251 @@
+<form version="1.1" theme="dark">
+  <label>Suricata Alerts (V2.0)</label>
+  <description>V2 Additions: All Dysfunctional Queries Have Been Fixed</description>
+  <fieldset submitButton="true" autoRun="true">
+    <input type="time" token="time" searchWhenChanged="false">
+      <label>Time Selector</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="text" token="signature">
+      <label>Signature Search</label>
+      <default>ET INFO Microsoft Connection Test</default>
+    </input>
+    <input type="text" token="ip">
+      <label>IP Search</label>
+      <initialValue>10.13.26.2</initialValue>
+    </input>
+    <input type="radio" token="who">
+      <label>IP Search By</label>
+      <choice value="src_ip">Source</choice>
+      <choice value="dest_ip">Destination</choice>
+      <initialValue>src_ip</initialValue>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <table>
+        <title>Severity Totals  (Excluding Scan &amp; Ping Alerts)</title>
+        <search>
+          <query>index=<index> sourcetype=suricata    NOT 
+    [| inputlookup Known_Scanners.csv
+    | rename scannerip AS src_ip
+    | table src_ip
+    | format] 
+| where !like (signature, "ET SCAN%") AND !like (signature, "GPL ICMP%")
+| stats count by severity
+| eval severity = upper(substr(severity,1,1)).lower(substr(severity,2))
+| eval sorter=severity
+| eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
+| sort by sorter,-count
+| fields - sorter
+| rename severity AS Severity, count AS Count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+          <refresh>5m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <format type="color" field="Severity">
+          <colorPalette type="map">{"High":#D41F1F,"Medium":#D94E17,"Low":#CBA700}</colorPalette>
+        </format>
+        <format type="color" field="Count">
+          <colorPalette type="list">[#118832,#FFFFFF]</colorPalette>
+          <scale type="threshold">0</scale>
+        </format>
+      </table>
+    </panel>
+    <panel>
+      <table>
+        <title>Unique Signature Totals  (Excluding Scan &amp; Ping Alerts)</title>
+        <search>
+          <query>index=<index> sourcetype=suricata NOT 
+    [| inputlookup Known_Scanners.csv
+    | rename scannerip AS src_ip
+    | table src_ip
+    | format] 
+| where !like (signature, "ET SCAN%") AND !like (signature, "GPL ICMP%")
+| stats count by severity, signature
+| eval severity = upper(substr(severity,1,1)).lower(substr(severity,2))
+| stats count by severity
+| eval sorter=severity
+| eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
+| sort by sorter,-count
+| fields - sorter
+| rename severity AS Severity, count AS Count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+          <refresh>5m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <format type="color" field="Severity">
+          <colorPalette type="map">{"High":#D41F1F,"Medium":#D94E17,"Low":#CBA700}</colorPalette>
+        </format>
+        <format type="color" field="Count">
+          <colorPalette type="list">[#118832,#FFFFFF]</colorPalette>
+          <scale type="threshold">0</scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Unique Alert Signatures (Excluding Scan &amp; Ping Alerts)</title>
+      <table>
+        <search>
+          <query>index=<index> sourcetype=suricata    NOT 
+    [| inputlookup Known_Scanners.csv
+    | rename scannerip AS src_ip
+    | table src_ip
+    | format] 
+| eval severity = upper(substr(severity,1,1)).lower(substr(severity,2))
+| stats count by severity, signature, category
+| where !like (signature, "ET SCAN%") AND !like (signature, "GPL ICMP%")
+| eval sorter=severity
+| eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
+| sort by sorter,-count
+| fields - sorter
+| rename severity AS Severity, count AS Count, signature AS Signature, category AS Category</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+          <refresh>10m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <format type="color" field="Severity">
+          <colorPalette type="map">{"High":#D41F1F,"Medium":#E3723A,"Low":#CBA700}</colorPalette>
+        </format>
+        <format type="color" field="count">
+          <colorPalette type="list">[#CBA700,#E3723A,#D41F1F]</colorPalette>
+          <scale type="threshold">10,100</scale>
+        </format>
+        <format type="color" field="Count">
+          <colorPalette type="minMidMax" maxColor="#D41F1F" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>External To Internal Traffic</title>
+        <search>
+          <query>index=<index> sourcetype=suricata    NOT 
+    [| inputlookup Known_Scanners.csv
+    | rename scannerip AS src_ip
+    | table src_ip
+    | format] 
+| eval severity = upper(substr(severity,1,1)).lower(substr(severity,2))
+| stats count by severity, src_ip, dest_ip
+| where !like (src_ip, "10.%") AND !like (src_ip, "137.232%") AND !like (src_ip, "137.233%")
+| sort - count
+| eval sorter=severity
+| eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
+| sort by sorter,-count
+| fields - sorter
+| rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+          <refresh>5m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <format type="color" field="Severity">
+          <colorPalette type="map">{"High":#D41F1F,"Medium":#D94E17,"Low":#CBA700}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Signature Search</title>
+      <table>
+        <search>
+          <query>index=<index> sourcetype=suricata    NOT 
+    [| inputlookup Known_Scanners.csv
+    | rename scannerip AS src_ip
+    | table src_ip
+    | format] 
+| eval severity = upper(substr(severity,1,1)).lower(substr(severity,2))
+| stats count by severity, signature, category, src_ip, src_port, dest_ip, dest_port, proto
+| eval src_port=tonumber(src_port)
+| eval dest_port=tonumber(dest_port)
+| appendpipe [where src_port &gt; 1024 | eval src_port = "High Port"]
+| appendpipe [where dest_port &gt; 1024 | eval dest_port = "High Port"]
+| mvexpand src_port
+| mvexpand dest_port
+| where (src_port &lt; tonumber(1025) OR src_port = "High Port") AND (dest_port &lt; tonumber(1025) OR dest_port = "High Port")
+| stats count by severity, signature, category, src_ip, src_port, dest_ip, dest_port, proto
+| where signature = "$signature$"
+| sort - count
+| eval sorter=severity
+| eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
+| sort by sorter,-count
+| fields - sorter
+| rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <format type="color" field="Severity">
+          <colorPalette type="map">{"High":#D41F1F,"Medium":#D94E17,"Low":#CBA700}</colorPalette>
+        </format>
+        <format type="color" field="Count">
+          <colorPalette type="minMidMax" maxColor="#D41F1F" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>IP Search</title>
+      <table>
+        <search>
+          <query>index=<index> sourcetype=suricata AND proto!="ICMP"    NOT 
+    [| inputlookup Known_Scanners.csv
+    | rename scannerip AS src_ip
+    | table src_ip
+    | format] 
+| eval severity = upper(substr(severity,1,1)).lower(substr(severity,2))
+| stats count by severity, signature, category, src_ip, src_port, dest_ip, dest_port, proto
+| eval src_port=tonumber(src_port)
+| eval dest_port=tonumber(dest_port)
+| appendpipe [where src_port &gt; 1024 | eval src_port = "High Port"]
+| appendpipe [where dest_port &gt; 1024 | eval dest_port = "High Port"]
+| mvexpand src_port
+| mvexpand dest_port
+| where (src_port &lt; tonumber(1025) OR src_port = "High Port") AND (dest_port &lt; tonumber(1025) OR dest_port = "High Port")
+| where $who$ = "$ip$"
+| stats count by severity, signature, category, src_ip, src_port, dest_ip, dest_port, proto
+| sort - count
+| eval sorter=severity
+| eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
+| sort by sorter,-count
+| fields - sorter
+| rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <format type="color" field="Severity">
+          <colorPalette type="map">{"High":#D41F1F,"Medium":#D94E17,"Low":#CBA700}</colorPalette>
+        </format>
+        <format type="color" field="Count">
+          <colorPalette type="minMidMax" maxColor="#D41F1F" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+</form>
