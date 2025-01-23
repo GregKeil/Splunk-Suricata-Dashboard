@@ -1,5 +1,5 @@
 <form version="1.1" theme="dark">
-  <label>Suricata Alerts (V3.0)</label>
+  <label>Suricata Alert Overview (V3.0)</label>
   <description>V3 Additions: Dashboard Now Runs Off Datamodels</description>
   <fieldset submitButton="true" autoRun="true">
     <input type="time" token="time" searchWhenChanged="false">
