@@ -3,11 +3,11 @@ This is a dashboard designed to provide Suricata alert information to analysts i
 
 ## Requirements & Recommendations:
 ### Requirements:
-- Splunk Common Information Model (CIM)
+- **Splunk Common Information Model (CIM)**
   - https://splunkbase.splunk.com/app/1621
-- Known_Scanners.csv Lookup File
+- **Known_Scanners.csv** Lookup File
 ### Recommendations: 
-- Splunk App For Lookup File Editing:
+- **Splunk App For Lookup File Editing**
   - https://splunkbase.splunk.com/app/1724
 
 ## Other Notes:
