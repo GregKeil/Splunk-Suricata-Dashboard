@@ -1,6 +1,6 @@
 <form version="1.1" theme="dark">
-  <label>Suricata Alerts (V2.0)</label>
-  <description>V2 Additions: All Dysfunctional Queries Have Been Fixed</description>
+  <label>Suricata Alerts (V3.0)</label>
+  <description>V3 Additions: Dashboard Now Runs Off Datamodels</description>
   <fieldset submitButton="true" autoRun="true">
     <input type="time" token="time" searchWhenChanged="false">
       <label>Time Selector</label>
@@ -26,21 +26,38 @@
   </fieldset>
   <row>
     <panel>
-      <table>
-        <title>Severity Totals  (Excluding Scan &amp; Ping Alerts)</title>
+      <single>
+        <title>Total Alerts (Excluding Known Scanners)</title>
         <search>
-          <query>index=<index> sourcetype=suricata    NOT 
-    [| inputlookup Known_Scanners.csv
-    | rename scannerip AS src_ip
-    | table src_ip
-    | format] 
-| where !like (signature, "ET SCAN%") AND !like (signature, "GPL ICMP%")
+          <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto
+| stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+          <refresh>5m</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Severity Totals</title>
+        <search>
+          <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto
+| rename alerts.severity AS severity, alerts.signature AS signature, alerts.category AS category, alerts.src_ip AS src_ip, alerts.src_port AS src_port, alerts.dest_ip AS dest_ip, alerts.dest_port AS dest_port, alerts.proto AS proto
+
+```Filter Out Specific Alerts Here```
+```| where !like (signature, "ET SCAN%") OR like (signature, "GPL ICMP%")```
+
 | stats count by severity
-| eval severity = upper(substr(severity,1,1)).lower(substr(severity,2))
 | eval sorter=severity
 | eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
 | sort by sorter,-count
 | fields - sorter
+| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
 | rename severity AS Severity, count AS Count</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
@@ -60,14 +77,14 @@
     </panel>
     <panel>
       <table>
-        <title>Unique Signature Totals  (Excluding Scan &amp; Ping Alerts)</title>
+        <title>Unique Signature Totals</title>
         <search>
-          <query>index=<index> sourcetype=suricata NOT 
-    [| inputlookup Known_Scanners.csv
-    | rename scannerip AS src_ip
-    | table src_ip
-    | format] 
-| where !like (signature, "ET SCAN%") AND !like (signature, "GPL ICMP%")
+          <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature
+| rename alerts.severity AS severity, alerts.signature AS signature
+
+```Filter Out Specific Alerts Here```
+```| where !like (signature, "ET SCAN%") OR like (signature, "GPL ICMP%")```
+
 | stats count by severity, signature
 | eval severity = upper(substr(severity,1,1)).lower(substr(severity,2))
 | stats count by severity
@@ -75,6 +92,7 @@
 | eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
 | sort by sorter,-count
 | fields - sorter
+| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
 | rename severity AS Severity, count AS Count</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
@@ -95,21 +113,21 @@
   </row>
   <row>
     <panel>
-      <title>Unique Alert Signatures (Excluding Scan &amp; Ping Alerts)</title>
+      <title>Unique Alert Signatures</title>
       <table>
         <search>
-          <query>index=<index> sourcetype=suricata    NOT 
-    [| inputlookup Known_Scanners.csv
-    | rename scannerip AS src_ip
-    | table src_ip
-    | format] 
-| eval severity = upper(substr(severity,1,1)).lower(substr(severity,2))
+          <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto
+| rename alerts.severity AS severity, alerts.signature AS signature, alerts.category AS category, alerts.src_ip AS src_ip, alerts.src_port AS src_port, alerts.dest_ip AS dest_ip, alerts.dest_port AS dest_port, alerts.proto AS proto
+
+```Filter Out Specific Alerts Here```
+```| where !like (signature, "ET SCAN%") OR like (signature, "GPL ICMP%")```
+
 | stats count by severity, signature, category
-| where !like (signature, "ET SCAN%") AND !like (signature, "GPL ICMP%")
 | eval sorter=severity
 | eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
 | sort by sorter,-count
 | fields - sorter
+| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
 | rename severity AS Severity, count AS Count, signature AS Signature, category AS Category</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
@@ -135,26 +153,70 @@
   <row>
     <panel>
       <table>
-        <title>External To Internal Traffic</title>
+        <title>Unknown External To Internal Traffic</title>
         <search>
-          <query>index=<index> sourcetype=suricata    NOT 
-    [| inputlookup Known_Scanners.csv
-    | rename scannerip AS src_ip
-    | table src_ip
-    | format] 
-| eval severity = upper(substr(severity,1,1)).lower(substr(severity,2))
-| stats count by severity, src_ip, dest_ip
-| where !like (src_ip, "10.%") AND !like (src_ip, "137.232%") AND !like (src_ip, "137.233%")
+          <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity,alerts.src_ip, alerts.dest_ip
+| rename alerts.severity AS severity, alerts.signature AS signature, alerts.src_ip AS src_ip, alerts.dest_ip AS dest_ip
+
+```Filter Out Other Known Sources Here```
+```| where !like (src_ip, "192.1.1.1") AND !like (src_ip, "192.1.1.2") AND !like (src_ip, "192.1.1.3")```
+
+| eval ExternalSouce = case(
+cidrmatch("10.0.0.0/8",src_ip),"False",
+cidrmatch("172.16.0.0/12",src_ip),"False",
+cidrmatch("192.168.0.0/16",src_ip),"False",
+isnull(src_ip) OR like(src_ip,""), "False",
+match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")
+| where like (ExternalSouce, "True")
+
+| fields severity, src_ip, dest_ip, count
 | sort - count
 | eval sorter=severity
 | eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
 | sort by sorter,-count
 | fields - sorter
+| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
 | rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
           <refresh>5m</refresh>
           <refreshType>delay</refreshType>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <format type="color" field="Severity">
+          <colorPalette type="map">{"High":#D41F1F,"Medium":#D94E17,"Low":#CBA700}</colorPalette>
+        </format>
+      </table>
+    </panel>
+    <panel>
+      <table>
+        <title>Unknown Internal To External Traffic</title>
+        <search>
+          <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity,alerts.src_ip, alerts.dest_ip
+| rename alerts.severity AS severity, alerts.signature AS signature, alerts.src_ip AS src_ip, alerts.dest_ip AS dest_ip
+
+```Filter Out Other Known Destinations Here```
+```| where !like (dest_ip, "192.1.1.1") AND !like (dest_ip, "192.1.1.2") AND !like (dest_ip, "192.1.1.3")```
+
+| eval ExternalDest = case(
+cidrmatch("10.0.0.0/8",dest_ip),"False",
+cidrmatch("172.16.0.0/12",dest_ip),"False",
+cidrmatch("192.168.0.0/16",dest_ip),"False",
+isnull(dest_ip) OR like(dest_ip,""), "False",
+match(dest_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")
+| where like (ExternalDest, "True")
+
+| fields severity, src_ip, dest_ip, count
+| sort - count
+| eval sorter=severity
+| eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
+| sort by sorter,-count
+| fields - sorter
+| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
+| rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
@@ -169,13 +231,9 @@
       <title>Signature Search</title>
       <table>
         <search>
-          <query>index=<index> sourcetype=suricata    NOT 
-    [| inputlookup Known_Scanners.csv
-    | rename scannerip AS src_ip
-    | table src_ip
-    | format] 
-| eval severity = upper(substr(severity,1,1)).lower(substr(severity,2))
-| stats count by severity, signature, category, src_ip, src_port, dest_ip, dest_port, proto
+          <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto
+| rename alerts.severity AS severity, alerts.signature AS signature, alerts.category AS category, alerts.src_ip AS src_ip, alerts.src_port AS src_port, alerts.dest_ip AS dest_ip, alerts.dest_port AS dest_port, alerts.proto AS proto
+
 | eval src_port=tonumber(src_port)
 | eval dest_port=tonumber(dest_port)
 | appendpipe [where src_port &gt; 1024 | eval src_port = "High Port"]
@@ -190,6 +248,7 @@
 | eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
 | sort by sorter,-count
 | fields - sorter
+| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
 | rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
@@ -211,13 +270,9 @@
       <title>IP Search</title>
       <table>
         <search>
-          <query>index=<index> sourcetype=suricata AND proto!="ICMP"    NOT 
-    [| inputlookup Known_Scanners.csv
-    | rename scannerip AS src_ip
-    | table src_ip
-    | format] 
-| eval severity = upper(substr(severity,1,1)).lower(substr(severity,2))
-| stats count by severity, signature, category, src_ip, src_port, dest_ip, dest_port, proto
+          <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto
+| rename alerts.severity AS severity, alerts.signature AS signature, alerts.category AS category, alerts.src_ip AS src_ip, alerts.src_port AS src_port, alerts.dest_ip AS dest_ip, alerts.dest_port AS dest_port, alerts.proto AS proto
+
 | eval src_port=tonumber(src_port)
 | eval dest_port=tonumber(dest_port)
 | appendpipe [where src_port &gt; 1024 | eval src_port = "High Port"]
@@ -232,6 +287,7 @@
 | eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
 | sort by sorter,-count
 | fields - sorter
+| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
 | rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
