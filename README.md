@@ -6,7 +6,7 @@ This is a dashboard designed to provide Suricata alert information to analysts i
 - **Splunk Common Information Model (CIM)**
   - https://splunkbase.splunk.com/app/1621
 - **Known_Scanners.csv** Lookup File
-- **Suricata_Suite_Datamodel.json** must be configured and installed
+- **Suricata_Suite_Datamodel.json** must be configured and installed (Name: Suricata_Suite)
 - **Suricata Alert Overview___.xml** is the source code for the dashboard
 ### Recommendations: 
 - **Splunk App For Lookup File Editing**
