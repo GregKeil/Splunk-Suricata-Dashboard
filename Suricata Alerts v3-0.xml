@@ -253,6 +253,9 @@ match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")
           <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto
 | rename alerts.severity AS severity, alerts.signature AS signature, alerts.category AS category, alerts.src_ip AS src_ip, alerts.src_port AS src_port, alerts.dest_ip AS dest_ip, alerts.dest_port AS dest_port, alerts.proto AS proto
 
+```Filter Out Other Known Sources Here```
+```| where !like (fieldname, "match%")```
+
 | eval src_port=tonumber(src_port)
 | eval dest_port=tonumber(dest_port)
 | appendpipe [where src_port &gt; 1024 | eval src_port = "High Port"]
@@ -291,6 +294,9 @@ match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")
         <search>
           <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto
 | rename alerts.severity AS severity, alerts.signature AS signature, alerts.category AS category, alerts.src_ip AS src_ip, alerts.src_port AS src_port, alerts.dest_ip AS dest_ip, alerts.dest_port AS dest_port, alerts.proto AS proto
+
+```Filter Out Other Known Sources Here```
+```| where !like (fieldname, "match%")```
 
 | eval src_port=tonumber(src_port)
 | eval dest_port=tonumber(dest_port)
