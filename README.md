@@ -5,12 +5,16 @@ This is a dashboard designed to provide Suricata alert information to analysts i
 ### Requirements:
 - **Splunk Common Information Model (CIM)**
   - https://splunkbase.splunk.com/app/1621
-- **Known_Scanners.csv** Lookup File
+- **Known_Scanners.csv** lookup file containing known scanners
 - **Suricata_Suite_Datamodel.json** must be configured and installed (Datamodel ID: Suricata_Suite)
 - **Suricata Alert Overview___.xml** is the source code for the dashboard
+- **Disabled_Suricata_Rules.csv** lookup file containing all the SIDs you do not wish to have within the datamodel
 ### Recommendations: 
 - **Splunk App For Lookup File Editing**
   - https://splunkbase.splunk.com/app/1724
 
 ## Current Version Notes:
-- Version 3 enables the dashboard to operate off the datamodel
+- Version 4 integrated the use of the __Disabled_Suricata_Rules.csv_ file
+
+##Other Notes:
+- Any modifications to a CSV file will not be automatically applied to the datamodel. To integrate changes, you must rebuild the datamodels
