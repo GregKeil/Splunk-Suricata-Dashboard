@@ -16,5 +16,5 @@ This is a dashboard designed to provide Suricata alert information to analysts i
 ## Current Version Notes:
 - Version 4 integrated the use of the _Disabled_Suricata_Rules.csv_ file
 
-##Other Notes:
+## Other Notes:
 - Any modifications to a CSV file will not be automatically applied to the datamodel when in accelerated mode. To integrate changes, you must rebuild the datamodels
