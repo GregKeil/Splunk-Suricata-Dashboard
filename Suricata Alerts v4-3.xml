@@ -1,5 +1,5 @@
 <form version="1.1" theme="dark">
-  <label>Suricata Alert Overview (V4.0)</label>
+  <label>Suricata Alert Overview (V4.3)</label>
   <description>V4 Additions: Dashboard Now Integrates Usage Of The Disabled_Suricata_Rules.csv</description>
   <fieldset submitButton="true" autoRun="true">
     <input type="time" token="time" searchWhenChanged="false">
