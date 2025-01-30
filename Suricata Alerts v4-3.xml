@@ -1,6 +1,49 @@
 <form version="1.1" theme="dark">
   <label>Suricata Alert Overview (V4.3)</label>
   <description>V4 Additions: Dashboard Now Integrates Usage Of The Disabled_Suricata_Rules.csv</description>
+  <search id="TstatsBaseSearch">
+    <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto, alerts.sid
+| rename alerts.severity AS severity, alerts.signature AS signature, alerts.category AS category, alerts.src_ip AS src_ip, alerts.src_port AS src_port, alerts.dest_ip AS dest_ip, alerts.dest_port AS dest_port, alerts.proto AS proto, alerts.sid AS SID
+| stats count by severity, signature, category, src_ip, src_port, dest_ip, dest_port, proto, SID
+
+```Filter Out Specific Alerts Here```
+```| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"1.1.1.1")```
+
+</query>
+    <earliest>$time.earliest$</earliest>
+    <latest>$time.latest$</latest>
+    <refresh>5m</refresh>
+    <refreshType>delay</refreshType>
+    <done>
+      <set token="IPEval">| eval ExternalSouce = case(
+cidrmatch("10.0.0.0/8",src_ip),"False",
+cidrmatch("172.16.0.0/12",src_ip),"False",
+cidrmatch("192.168.0.0/16",src_ip),"False",
+isnull(src_ip) OR like(src_ip,""), "False",
+match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")
+
+| eval ExternalDest = case(
+cidrmatch("10.0.0.0/8",dest_ip),"False",
+cidrmatch("172.16.0.0/12",dest_ip),"False",
+cidrmatch("192.168.0.0/16",dest_ip),"False",
+isnull(src_ip) OR like(dest_ip,""), "False",
+match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")</set>
+      <set token="HighToLow">| eval severity = upper(substr(severity,1,1)).lower(substr(severity,2))
+| eval sorter=severity
+| eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
+| sort by sorter,-count
+| fields - sorter</set>
+      <set token="Formating">| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
+| rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol</set>
+      <set token="HighPort">| eval src_port=tonumber(src_port)
+| eval dest_port=tonumber(dest_port)
+| appendpipe [where src_port &gt; 1024 | eval src_port = "High Port"]
+| appendpipe [where dest_port &gt; 1024 | eval dest_port = "High Port"]
+| mvexpand src_port
+| mvexpand dest_port
+| where (src_port &lt; tonumber(1025) OR src_port = "High Port") AND (dest_port &lt; tonumber(1025) OR dest_port = "High Port")</set>
+    </done>
+  </search>
   <fieldset submitButton="true" autoRun="true">
     <input type="time" token="time" searchWhenChanged="false">
       <label>Time Selector</label>
@@ -24,49 +67,6 @@
       <initialValue>src_ip</initialValue>
     </input>
   </fieldset>
-  <search id="TstatsBaseSearch">
-    <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto, alerts.sid
-| rename alerts.severity AS severity, alerts.signature AS signature, alerts.category AS category, alerts.src_ip AS src_ip, alerts.src_port AS src_port, alerts.dest_ip AS dest_ip, alerts.dest_port AS dest_port, alerts.proto AS proto, alerts.sid AS SID
-| stats count by severity, signature, category, src_ip, src_port, dest_ip, dest_port, proto, SID
-
-```Filter Out Specific Alerts Here```
-```| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"1.1.1.1")```</query>
-    <earliest>$time.earliest$</earliest>
-    <latest>$time.latest$</latest>
-    <refresh>5m</refresh>
-    <refreshType>delay</refreshType>
-          <done>
-            <set token="IPEval">| eval ExternalSouce = case(
-cidrmatch("10.0.0.0/8",src_ip),"False",
-cidrmatch("172.16.0.0/12",src_ip),"False",
-cidrmatch("192.168.0.0/16",src_ip),"False",
-isnull(src_ip) OR like(src_ip,""), "False",
-match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")
-
-| eval ExternalDest = case(
-cidrmatch("10.0.0.0/8",dest_ip),"False",
-cidrmatch("172.16.0.0/12",dest_ip),"False",
-cidrmatch("192.168.0.0/16",dest_ip),"False",
-isnull(src_ip) OR like(dest_ip,""), "False",
-match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")</set>
-            <set token="HighToLow">| eval severity = upper(substr(severity,1,1)).lower(substr(severity,2))
-| eval sorter=severity
-| eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
-| sort by sorter,-count
-| fields - sorter</set>
-            <set token="Formating">| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
-| rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol
-              </set>
-            <set token="HighPort">| eval src_port=tonumber(src_port)
-| eval dest_port=tonumber(dest_port)
-| appendpipe [where src_port &gt; 1024 | eval src_port = "High Port"]
-| appendpipe [where dest_port &gt; 1024 | eval dest_port = "High Port"]
-| mvexpand src_port
-| mvexpand dest_port
-| where (src_port &lt; tonumber(1025) OR src_port = "High Port") AND (dest_port &lt; tonumber(1025) OR dest_port = "High Port")</set>
-          </done>
-  </search>
-
   <row>
     <panel>
       <single>
@@ -149,11 +149,13 @@ $Formating$</query>
       <table>
         <title>Unknown External To Internal Traffic</title>
         <search base="TstatsBaseSearch">
-          <query>$InternalIPEval$
+          <query>$IPEval$
 | where like (ExternalSouce, "True") AND !like (ExternalDest, "True")
 | fields severity, SID, src_ip, dest_ip, count
 $HighToLow$
 $Formating$</query>
+          <refresh>5m</refresh>
+          <refreshType>delay</refreshType>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
@@ -166,12 +168,13 @@ $Formating$</query>
       <table>
         <title>Unknown Internal To External Traffic</title>
         <search base="TstatsBaseSearch">
-          <query>$InternalIPEval$
-          
+          <query>$IPEval$
 | where !like (ExternalSouce, "True") AND like (ExternalDest, "True")
 | fields severity, SID, src_ip, dest_ip, count
 $HighToLow$
 $Formating$</query>
+          <refresh>5m</refresh>
+          <refreshType>delay</refreshType>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
@@ -191,6 +194,8 @@ $Formating$</query>
 | where like (signature, "$signature$") OR like (SID, "$signature$")
 $HighToLow$
 $Formating$</query>
+          <refresh>5m</refresh>
+          <refreshType>delay</refreshType>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
