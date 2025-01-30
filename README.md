@@ -14,7 +14,7 @@ This is a dashboard designed to provide Suricata alert information to analysts i
   - https://splunkbase.splunk.com/app/1724
 
 ## Current Version Notes:
-- Version 4 integrated the use of the _Disabled_Suricata_Rules.csv_ file
+- Version 5 Additions: Dashboard Now Integrates Drilldown
 
 ## Other Notes:
 - Any modifications to a CSV file will not be automatically applied to the datamodel when in accelerated mode. To integrate changes, you must rebuild the datamodels
