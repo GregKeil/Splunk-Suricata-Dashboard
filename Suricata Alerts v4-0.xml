@@ -24,22 +24,55 @@
       <initialValue>src_ip</initialValue>
     </input>
   </fieldset>
+  <search id="TstatsBaseSearch">
+    <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto, alerts.sid
+| rename alerts.severity AS severity, alerts.signature AS signature, alerts.category AS category, alerts.src_ip AS src_ip, alerts.src_port AS src_port, alerts.dest_ip AS dest_ip, alerts.dest_port AS dest_port, alerts.proto AS proto, alerts.sid AS SID
+| stats count by severity, signature, category, src_ip, src_port, dest_ip, dest_port, proto, SID
+
+```Filter Out Specific Alerts Here```
+```| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"1.1.1.1")```</query>
+    <earliest>$time.earliest$</earliest>
+    <latest>$time.latest$</latest>
+    <refresh>5m</refresh>
+    <refreshType>delay</refreshType>
+          <done>
+            <set token="IPEval">| eval ExternalSouce = case(
+cidrmatch("10.0.0.0/8",src_ip),"False",
+cidrmatch("172.16.0.0/12",src_ip),"False",
+cidrmatch("192.168.0.0/16",src_ip),"False",
+isnull(src_ip) OR like(src_ip,""), "False",
+match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")
+
+| eval ExternalDest = case(
+cidrmatch("10.0.0.0/8",dest_ip),"False",
+cidrmatch("172.16.0.0/12",dest_ip),"False",
+cidrmatch("192.168.0.0/16",dest_ip),"False",
+isnull(src_ip) OR like(dest_ip,""), "False",
+match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")</set>
+            <set token="HighToLow">| eval severity = upper(substr(severity,1,1)).lower(substr(severity,2))
+| eval sorter=severity
+| eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
+| sort by sorter,-count
+| fields - sorter</set>
+            <set token="Formating">| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
+| rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol
+              </set>
+            <set token="HighPort">| eval src_port=tonumber(src_port)
+| eval dest_port=tonumber(dest_port)
+| appendpipe [where src_port &gt; 1024 | eval src_port = "High Port"]
+| appendpipe [where dest_port &gt; 1024 | eval dest_port = "High Port"]
+| mvexpand src_port
+| mvexpand dest_port
+| where (src_port &lt; tonumber(1025) OR src_port = "High Port") AND (dest_port &lt; tonumber(1025) OR dest_port = "High Port")</set>
+          </done>
+  </search>
+
   <row>
     <panel>
       <single>
         <title>Total Alerts (Excluding Known Scanners)</title>
-        <search>
-          <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto
-| rename alerts.severity AS severity, alerts.signature AS signature, alerts.category AS category, alerts.src_ip AS src_ip, alerts.src_port AS src_port, alerts.dest_ip AS dest_ip, alerts.dest_port AS dest_port, alerts.proto AS proto
-
-```Filter Out Specific Alerts Here```
-| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"1.1.1.1")
-
-| stats count</query>
-          <earliest>$time.earliest$</earliest>
-          <latest>$time.latest$</latest>
-          <refresh>5m</refresh>
-          <refreshType>delay</refreshType>
+        <search base="TstatsBaseSearch">
+          <query>| stats count</query>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
@@ -50,24 +83,10 @@
     <panel>
       <table>
         <title>Severity Totals</title>
-        <search>
-          <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto
-| rename alerts.severity AS severity, alerts.signature AS signature, alerts.category AS category, alerts.src_ip AS src_ip, alerts.src_port AS src_port, alerts.dest_ip AS dest_ip, alerts.dest_port AS dest_port, alerts.proto AS proto
-
-```Filter Out Specific Alerts Here```
-| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"1.1.1.1")
-
-| stats count by severity
-| eval sorter=severity
-| eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
-| sort by sorter,-count
-| fields - sorter
-| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
-| rename severity AS Severity, count AS Count</query>
-          <earliest>$time.earliest$</earliest>
-          <latest>$time.latest$</latest>
-          <refresh>5m</refresh>
-          <refreshType>delay</refreshType>
+        <search base="TstatsBaseSearch">
+          <query>| stats count by severity
+$HighToLow$
+$Formating$</query>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
@@ -83,26 +102,11 @@
     <panel>
       <table>
         <title>Unique Signature Totals</title>
-        <search>
-          <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto
-| rename alerts.severity AS severity, alerts.signature AS signature, alerts.category AS category, alerts.src_ip AS src_ip, alerts.src_port AS src_port, alerts.dest_ip AS dest_ip, alerts.dest_port AS dest_port, alerts.proto AS proto
-
-```Filter Out Specific Alerts Here```
-| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"1.1.1.1")
-
-| stats count by severity, signature
-| eval severity = upper(substr(severity,1,1)).lower(substr(severity,2))
+        <search base="TstatsBaseSearch">
+          <query>| stats count by severity, signature
 | stats count by severity
-| eval sorter=severity
-| eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
-| sort by sorter,-count
-| fields - sorter
-| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
-| rename severity AS Severity, count AS Count</query>
-          <earliest>$time.earliest$</earliest>
-          <latest>$time.latest$</latest>
-          <refresh>5m</refresh>
-          <refreshType>delay</refreshType>
+$HighToLow$
+$Formating$</query>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
@@ -120,27 +124,12 @@
     <panel>
       <title>Unique Alert Signatures</title>
       <table>
-        <search>
-          <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.sid, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto
-| rename alerts.severity AS severity, alerts.signature AS signature, alerts.category AS category, alerts.src_ip AS src_ip, alerts.src_port AS src_port, alerts.dest_ip AS dest_ip, alerts.dest_port AS dest_port, alerts.proto AS proto, alerts.sid AS SID
-
-```Filter Out Specific Alerts Here```
-| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"1.1.1.1")
-
-| stats count by severity, signature, category, SID
-| eval sorter=severity
-| eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
-| sort by sorter,-count
-| fields - sorter
-| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
-| rename severity AS Severity, count AS Count, signature AS Signature, category AS Category</query>
-          <earliest>$time.earliest$</earliest>
-          <latest>$time.latest$</latest>
-          <refresh>10m</refresh>
-          <refreshType>delay</refreshType>
+        <search base="TstatsBaseSearch">
+          <query>| stats count by severity, signature, category, SID
+$HighToLow$
+$Formating$</query>
         </search>
         <option name="drilldown">none</option>
-        <option name="refresh.display">progressbar</option>
         <format type="color" field="Severity">
           <colorPalette type="map">{"High":#D41F1F,"Medium":#E3723A,"Low":#CBA700}</colorPalette>
         </format>
@@ -159,41 +148,12 @@
     <panel>
       <table>
         <title>Unknown External To Internal Traffic</title>
-        <search>
-          <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.sid, alerts.src_ip, alerts.dest_ip, alerts.signature
-| rename alerts.severity AS severity, alerts.signature AS signature, alerts.src_ip AS src_ip, alerts.dest_ip AS dest_ip, alerts.sid AS SID
-
-```Filter Out Specific Alerts Here```
-| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"1.1.1.1")
-
-| eval ExternalSouce = case(
-cidrmatch("10.0.0.0/8",src_ip),"False",
-cidrmatch("172.16.0.0/12",src_ip),"False",
-cidrmatch("192.168.0.0/16",src_ip),"False",
-isnull(src_ip) OR like(src_ip,""), "False",
-match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")
-
-| eval ExternalDest = case(
-cidrmatch("10.0.0.0/8",dest_ip),"False",
-cidrmatch("172.16.0.0/12",dest_ip),"False",
-cidrmatch("192.168.0.0/16",dest_ip),"False",
-isnull(src_ip) OR like(dest_ip,""), "False",
-match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")
-
+        <search base="TstatsBaseSearch">
+          <query>$InternalIPEval$
 | where like (ExternalSouce, "True") AND !like (ExternalDest, "True")
-
 | fields severity, SID, src_ip, dest_ip, count
-| sort - count
-| eval sorter=severity
-| eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
-| sort by sorter,-count
-| fields - sorter
-| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
-| rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol</query>
-          <earliest>$time.earliest$</earliest>
-          <latest>$time.latest$</latest>
-          <refresh>5m</refresh>
-          <refreshType>delay</refreshType>
+$HighToLow$
+$Formating$</query>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
@@ -205,41 +165,13 @@ match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")
     <panel>
       <table>
         <title>Unknown Internal To External Traffic</title>
-        <search>
-          <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.sid, alerts.src_ip, alerts.dest_ip, alerts.signature
-| rename alerts.severity AS severity, alerts.signature AS signature, alerts.src_ip AS src_ip, alerts.dest_ip AS dest_ip, alerts.sid AS SID
-
-```Filter Out Specific Alerts Here```
-| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"1.1.1.1")
-
-| eval ExternalSouce = case(
-cidrmatch("10.0.0.0/8",src_ip),"False",
-cidrmatch("172.16.0.0/12",src_ip),"False",
-cidrmatch("192.168.0.0/16",src_ip),"False",
-isnull(src_ip) OR like(src_ip,""), "False",
-match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")
-
-| eval ExternalDest = case(
-cidrmatch("10.0.0.0/8",dest_ip),"False",
-cidrmatch("172.16.0.0/12",dest_ip),"False",
-cidrmatch("192.168.0.0/16",dest_ip),"False",
-isnull(src_ip) OR like(dest_ip,""), "False",
-match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")
-
+        <search base="TstatsBaseSearch">
+          <query>$InternalIPEval$
+          
 | where !like (ExternalSouce, "True") AND like (ExternalDest, "True")
-
 | fields severity, SID, src_ip, dest_ip, count
-| sort - count
-| eval sorter=severity
-| eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
-| sort by sorter,-count
-| fields - sorter
-| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
-| rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol</query>
-          <earliest>$time.earliest$</earliest>
-          <latest>$time.latest$</latest>
-          <refresh>5m</refresh>
-          <refreshType>delay</refreshType>
+$HighToLow$
+$Formating$</query>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
@@ -253,31 +185,12 @@ match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")
     <panel>
       <title>Signature Search</title>
       <table>
-        <search>
-          <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.sid, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto
-| rename alerts.severity AS severity, alerts.signature AS signature, alerts.category AS category, alerts.src_ip AS src_ip, alerts.src_port AS src_port, alerts.dest_ip AS dest_ip, alerts.dest_port AS dest_port, alerts.proto AS proto, alerts.sid AS SID
-
-```Filter Out Specific Alerts Here```
-| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"1.1.1.1")
-
-| eval src_port=tonumber(src_port)
-| eval dest_port=tonumber(dest_port)
-| appendpipe [where src_port &gt; 1024 | eval src_port = "High Port"]
-| appendpipe [where dest_port &gt; 1024 | eval dest_port = "High Port"]
-| mvexpand src_port
-| mvexpand dest_port
-| where (src_port &lt; tonumber(1025) OR src_port = "High Port") AND (dest_port &lt; tonumber(1025) OR dest_port = "High Port")
+        <search base="TstatsBaseSearch">
+          <query>$HighPort$
 | stats count by severity, signature, category, SID, src_ip, src_port, dest_ip, dest_port, proto
 | where like (signature, "$signature$") OR like (SID, "$signature$")
-| sort - count
-| eval sorter=severity
-| eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
-| sort by sorter,-count
-| fields - sorter
-| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
-| rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol</query>
-          <earliest>$time.earliest$</earliest>
-          <latest>$time.latest$</latest>
+$HighToLow$
+$Formating$</query>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
@@ -295,31 +208,12 @@ match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")
     <panel>
       <title>IP Search</title>
       <table>
-        <search>
-          <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.sid, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto
-| rename alerts.severity AS severity, alerts.signature AS signature, alerts.category AS category, alerts.src_ip AS src_ip, alerts.src_port AS src_port, alerts.dest_ip AS dest_ip, alerts.dest_port AS dest_port, alerts.proto AS proto, alerts.sid AS SID
-
-```Filter Out Specific Alerts Here```
-| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"1.1.1.1")
-
-| eval src_port=tonumber(src_port)
-| eval dest_port=tonumber(dest_port)
-| appendpipe [where src_port &gt; 1024 | eval src_port = "High Port"]
-| appendpipe [where dest_port &gt; 1024 | eval dest_port = "High Port"]
-| mvexpand src_port
-| mvexpand dest_port
-| where (src_port &lt; tonumber(1025) OR src_port = "High Port") AND (dest_port &lt; tonumber(1025) OR dest_port = "High Port")
+        <search base="TstatsBaseSearch">
+          <query>$HighPort$
 | where $who$ = "$ip$"
 | stats count by severity, signature, category, SID, src_ip, src_port, dest_ip, dest_port, proto
-| sort - count
-| eval sorter=severity
-| eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
-| sort by sorter,-count
-| fields - sorter
-| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
-| rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol</query>
-          <earliest>$time.earliest$</earliest>
-          <latest>$time.latest$</latest>
+$HighToLow$
+$Formating$</query>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
