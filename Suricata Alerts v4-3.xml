@@ -1,13 +1,13 @@
 <form version="1.1" theme="dark">
-  <label>Suricata Alert Overview (V4.3)</label>
-  <description>V4 Additions: Dashboard Now Integrates Usage Of The Disabled_Suricata_Rules.csv</description>
+  <label>Suricata Alert Overview (V5.2)</label>
+  <description>V5 Additions: Dashboard Now Integrates Drilldown</description>
   <search id="TstatsBaseSearch">
     <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto, alerts.sid
 | rename alerts.severity AS severity, alerts.signature AS signature, alerts.category AS category, alerts.src_ip AS src_ip, alerts.src_port AS src_port, alerts.dest_ip AS dest_ip, alerts.dest_port AS dest_port, alerts.proto AS proto, alerts.sid AS SID
 | stats count by severity, signature, category, src_ip, src_port, dest_ip, dest_port, proto, SID
 
 ```Filter Out Specific Alerts Here```
-```| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"1.1.1.1")```
+| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"1.1.1.1")
 
 </query>
     <earliest>$time.earliest$</earliest>
@@ -52,14 +52,6 @@ match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")</set>
         <latest>now</latest>
       </default>
     </input>
-    <input type="text" token="signature">
-      <label>SID/Signature Search</label>
-      <default>ET INFO Microsoft Connection Test</default>
-    </input>
-    <input type="text" token="ip">
-      <label>IP Search</label>
-      <initialValue>10.13.26.2</initialValue>
-    </input>
     <input type="radio" token="who">
       <label>IP Search By</label>
       <choice value="src_ip">Source</choice>
@@ -69,8 +61,8 @@ match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")</set>
   </fieldset>
   <row>
     <panel>
+      <title>Total Alerts (Excluding Known Scanners)</title>
       <single>
-        <title>Total Alerts (Excluding Known Scanners)</title>
         <search base="TstatsBaseSearch">
           <query>| stats count</query>
         </search>
@@ -81,8 +73,15 @@ match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")</set>
   </row>
   <row>
     <panel>
+      <html>
+        <h3> </h3>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Severity Totals</title>
       <table>
-        <title>Severity Totals</title>
         <search base="TstatsBaseSearch">
           <query>| stats count by severity
 $HighToLow$
@@ -100,8 +99,8 @@ $Formating$</query>
       </table>
     </panel>
     <panel>
+      <title>Unique Signature Totals</title>
       <table>
-        <title>Unique Signature Totals</title>
         <search base="TstatsBaseSearch">
           <query>| stats count by severity, signature
 | stats count by severity
@@ -122,14 +121,20 @@ $Formating$</query>
   </row>
   <row>
     <panel>
-      <title>Unique Alert Signatures</title>
+      <html>
+        <h2>Unique Alert Breakdown</h2>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
       <table>
         <search base="TstatsBaseSearch">
           <query>| stats count by severity, signature, category, SID
 $HighToLow$
 $Formating$</query>
         </search>
-        <option name="drilldown">none</option>
+        <option name="drilldown">cell</option>
         <format type="color" field="Severity">
           <colorPalette type="map">{"High":#D41F1F,"Medium":#E3723A,"Low":#CBA700}</colorPalette>
         </format>
@@ -141,13 +146,84 @@ $Formating$</query>
           <colorPalette type="minMidMax" maxColor="#D41F1F" minColor="#FFFFFF"></colorPalette>
           <scale type="minMidMax"></scale>
         </format>
+        <drilldown>
+          <set token="signature">$row.SID$</set>
+        </drilldown>
       </table>
     </panel>
   </row>
   <row>
     <panel>
+      <html>
+        <h2>Selected SID Query: $signature$</h2>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
       <table>
-        <title>Unknown External To Internal Traffic</title>
+        <search base="TstatsBaseSearch">
+          <query>$HighPort$
+| stats count by severity, signature, category, SID, src_ip, src_port, dest_ip, dest_port, proto
+| where like (signature, "$signature$") OR like (SID, "$signature$")
+$HighToLow$
+$Formating$</query>
+        </search>
+        <option name="drilldown">cell</option>
+        <option name="refresh.display">progressbar</option>
+        <format type="color" field="Severity">
+          <colorPalette type="map">{"High":#D41F1F,"Medium":#D94E17,"Low":#CBA700}</colorPalette>
+        </format>
+        <format type="color" field="Count">
+          <colorPalette type="minMidMax" maxColor="#D41F1F" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <drilldown>
+          <set token="ip">$click.value2$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <html>
+        <h2>Selected IP Query: $ip$</h2>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <search base="TstatsBaseSearch">
+          <query>$HighPort$
+| where like (src_ip, "$ip$") OR like (dest_ip, "$ip$")
+| stats count by severity, signature, category, SID, src_ip, src_port, dest_ip, dest_port, proto
+$HighToLow$
+$Formating$</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <format type="color" field="Severity">
+          <colorPalette type="map">{"High":#D41F1F,"Medium":#D94E17,"Low":#CBA700}</colorPalette>
+        </format>
+        <format type="color" field="Count">
+          <colorPalette type="minMidMax" maxColor="#D41F1F" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <html>
+        <h3> </h3>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Unknown External To Internal Traffic</title>
+      <table>
         <search base="TstatsBaseSearch">
           <query>$IPEval$
 | where like (ExternalSouce, "True") AND !like (ExternalDest, "True")
@@ -163,8 +239,8 @@ $Formating$</query>
       </table>
     </panel>
     <panel>
+      <title>Unknown Internal To External Traffic</title>
       <table>
-        <title>Unknown Internal To External Traffic</title>
         <search base="TstatsBaseSearch">
           <query>$IPEval$
 | where !like (ExternalSouce, "True") AND like (ExternalDest, "True")
@@ -176,59 +252,6 @@ $Formating$</query>
         <option name="refresh.display">progressbar</option>
         <format type="color" field="Severity">
           <colorPalette type="map">{"High":#D41F1F,"Medium":#D94E17,"Low":#CBA700}</colorPalette>
-        </format>
-      </table>
-    </panel>
-  </row>
-  <row>
-    <panel>
-      <html>
-        <h1>Important Note: Be Mindful Of Any Extra Spaces When Utilizing The Search Functions</h1>
-      </html>
-    </panel>
-  </row>
-  <row>
-    <panel>
-      <title>Signature Search</title>
-      <table>
-        <search base="TstatsBaseSearch">
-          <query>$HighPort$
-| stats count by severity, signature, category, SID, src_ip, src_port, dest_ip, dest_port, proto
-| where like (signature, "$signature$") OR like (SID, "$signature$")
-$HighToLow$
-$Formating$</query>
-        </search>
-        <option name="drilldown">none</option>
-        <option name="refresh.display">progressbar</option>
-        <format type="color" field="Severity">
-          <colorPalette type="map">{"High":#D41F1F,"Medium":#D94E17,"Low":#CBA700}</colorPalette>
-        </format>
-        <format type="color" field="Count">
-          <colorPalette type="minMidMax" maxColor="#D41F1F" minColor="#FFFFFF"></colorPalette>
-          <scale type="minMidMax"></scale>
-        </format>
-      </table>
-    </panel>
-  </row>
-  <row>
-    <panel>
-      <title>IP Search</title>
-      <table>
-        <search base="TstatsBaseSearch">
-          <query>$HighPort$
-| where $who$ = "$ip$"
-| stats count by severity, signature, category, SID, src_ip, src_port, dest_ip, dest_port, proto
-$HighToLow$
-$Formating$</query>
-        </search>
-        <option name="drilldown">none</option>
-        <option name="refresh.display">progressbar</option>
-        <format type="color" field="Severity">
-          <colorPalette type="map">{"High":#D41F1F,"Medium":#D94E17,"Low":#CBA700}</colorPalette>
-        </format>
-        <format type="color" field="Count">
-          <colorPalette type="minMidMax" maxColor="#D41F1F" minColor="#FFFFFF"></colorPalette>
-          <scale type="minMidMax"></scale>
         </format>
       </table>
     </panel>
