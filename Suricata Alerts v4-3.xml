@@ -154,8 +154,6 @@ $Formating$</query>
 | fields severity, SID, src_ip, dest_ip, count
 $HighToLow$
 $Formating$</query>
-          <refresh>5m</refresh>
-          <refreshType>delay</refreshType>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
@@ -173,8 +171,6 @@ $Formating$</query>
 | fields severity, SID, src_ip, dest_ip, count
 $HighToLow$
 $Formating$</query>
-          <refresh>5m</refresh>
-          <refreshType>delay</refreshType>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
@@ -182,6 +178,13 @@ $Formating$</query>
           <colorPalette type="map">{"High":#D41F1F,"Medium":#D94E17,"Low":#CBA700}</colorPalette>
         </format>
       </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <html>
+        <h1>Important Note: Be Mindful Of Any Extra Spaces When Utilizing The Search Functions</h1>
+      </html>
     </panel>
   </row>
   <row>
@@ -194,8 +197,6 @@ $Formating$</query>
 | where like (signature, "$signature$") OR like (SID, "$signature$")
 $HighToLow$
 $Formating$</query>
-          <refresh>5m</refresh>
-          <refreshType>delay</refreshType>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
