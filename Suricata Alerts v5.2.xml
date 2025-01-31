@@ -117,6 +117,7 @@ $Formating$</query>
     <panel>
       <html>
         <h2>Unique Alert Breakdown</h2>
+        <h3>Select A SID</h3>
       </html>
     </panel>
   </row>
