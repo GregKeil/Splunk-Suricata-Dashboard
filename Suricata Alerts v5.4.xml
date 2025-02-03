@@ -1,5 +1,5 @@
 <form version="1.1" theme="dark">
-  <label>Suricata Alert Overview (V5.3)</label>
+  <label>Suricata Alert Overview (V5.4)</label>
   <description>V5 Additions: Dashboard Now Integrates Drilldown</description>
   <search id="TstatsBaseSearch">
     <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto, alerts.sid, alerts.community_id, alerts.payload_printable
@@ -7,7 +7,7 @@
 | stats count by severity, signature, category, src_ip, src_port, dest_ip, dest_port, proto, SID, community_id, payload_printable
 
 ```Filter Out Specific Alerts Here```
-| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"1.1.1.1")
+| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"0.0.0.0")
 
 </query>
     <earliest>$time.earliest$</earliest>
@@ -42,6 +42,9 @@ match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")</set>
 | mvexpand src_port
 | mvexpand dest_port
 | where (src_port &lt; tonumber(1025) OR src_port = "High Port") AND (dest_port &lt; tonumber(1025) OR dest_port = "High Port")</set>
+      <set token="signature">None Selected</set>
+      <set token="ip">None Selected</set>
+      <set token="cid">None Selected</set>
     </done>
   </search>
   <fieldset submitButton="true" autoRun="true">
@@ -117,7 +120,7 @@ $Formating$</query>
     <panel>
       <html>
         <h2>Unique Alert Breakdown</h2>
-        <h3>Select A SID</h3>
+        <h3>Select A Rule</h3>
       </html>
     </panel>
   </row>
@@ -150,8 +153,8 @@ $Formating$</query>
   <row>
     <panel>
       <html>
-        <h2>Select An IP</h2>
-        <h3>Current SID Query: $signature$</h3>
+        <h2>Current SID Query: $signature$</h2>
+        <h3>Select An IP (Source Or Destination)</h3>
       </html>
     </panel>
   </row>
@@ -161,7 +164,7 @@ $Formating$</query>
         <search base="TstatsBaseSearch">
           <query>$HighPort$
 | stats count by severity, signature, category, SID, src_ip, src_port, dest_ip, dest_port, proto
-| where like (signature, "$signature$") OR like (SID, "$signature$")
+| where like (SID, "$signature$")
 $HighToLow$
 $Formating$</query>
         </search>
@@ -183,8 +186,8 @@ $Formating$</query>
   <row>
     <panel>
       <html>
-        <h2>Select A CommunityID</h2>
-        <h3>Current IP Query: $ip$</h3>
+        <h2>Current IP Query: $ip$</h2>
+        <h3>Select A CommunityID</h3>
       </html>
     </panel>
   </row>
@@ -217,7 +220,6 @@ $Formating$</query>
     <panel>
       <html>
         <h2>Log Payload Breakdown</h2>
-        <h3>Current CommunityID Query: $cid$</h3>
       </html>
     </panel>
   </row>
@@ -225,9 +227,7 @@ $Formating$</query>
     <panel>
       <table>
         <search base="TstatsBaseSearch">
-          <query>| where like (src_ip, "$ip$") OR like (dest_ip, "$ip$")
-| where like (signature, "$signature$") OR like (SID, "$signature$")
-| where like (community_id, "$cid$")
+          <query>| where like (community_id, "$cid$")
 | stats count by severity, SID, payload_printable, community_id
 $HighToLow$
 $Formating$</query>
