@@ -32,7 +32,7 @@ match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")</set>
 | sort by sorter,-count
 | fields - sorter</set>
       <set token="Formating">| appendpipe [| stats count | where count=0 | eval "severity"="No Instances Found"]
-| rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol</set>
+| rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol, community_id AS "Community ID"</set>
       <set token="HighPort">| eval src_port=tonumber(src_port)
 | eval dest_port=tonumber(dest_port)
 | appendpipe [where src_port &gt; 1024 | eval src_port = "High Port"]
