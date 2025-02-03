@@ -239,7 +239,7 @@ $Formating$</query>
           <scale type="minMidMax"></scale>
         </format>
         <drilldown>
-          <link target="_blank">search?q=index%3Dindex%20sourcetype%3D%22zeek%3A*%3Ajson%22%0A%5B%20search%20index%3Dimefdm%20sourcetype%3D%22zeek%3Aconn%3Ajson%22%20AND%20community_id%3D%22$cid$%22%0A%7C%20table%20uid%0A%7C%20format%5D%0A%7C%20sort%20_time&amp;earliest=$time.earliest$&amp;latest=$time.latest$</link>
+          <link target="_blank">search?q=index%3Dindex%20sourcetype%3D%22zeek%3A*%3Ajson%22%0A%5B%20search%20index%3Dindex%20sourcetype%3D%22zeek%3Aconn%3Ajson%22%20AND%20community_id%3D%22$cid$%22%0A%7C%20table%20uid%0A%7C%20format%5D%0A%7C%20sort%20_time&amp;earliest=$time.earliest$&amp;latest=$time.latest$</link>
         </drilldown>
       </table>
     </panel>
