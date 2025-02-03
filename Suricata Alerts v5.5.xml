@@ -7,7 +7,7 @@
 | stats count by severity, signature, category, src_ip, src_port, dest_ip, dest_port, proto, SID, community_id, payload_printable, _time
 
 ```Filter Out Specific Alerts Here```
-| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"0.0.0.0")
+| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"1.1.1.1")
 
 </query>
     <earliest>$time.earliest$</earliest>
@@ -200,7 +200,6 @@ $HighToLow$
 $Formating$</query>
         </search>
         <option name="drilldown">cell</option>
-        <option name="refresh.display">progressbar</option>
         <format type="color" field="Severity">
           <colorPalette type="map">{"High":#D41F1F,"Medium":#D94E17,"Low":#CBA700}</colorPalette>
         </format>
@@ -209,7 +208,7 @@ $Formating$</query>
           <scale type="minMidMax"></scale>
         </format>
         <drilldown>
-          <set token="cid">$row.community_id$</set>
+          <set token="cid">$row.Community ID$</set>
         </drilldown>
       </table>
     </panel>
