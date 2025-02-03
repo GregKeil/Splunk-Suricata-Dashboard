@@ -12,8 +12,6 @@
 </query>
     <earliest>$time.earliest$</earliest>
     <latest>$time.latest$</latest>
-    <refresh>5m</refresh>
-    <refreshType>delay</refreshType>
     <done>
       <set token="IPEval">| eval ExternalSouce = case(
 cidrmatch("10.0.0.0/8",src_ip),"False",
@@ -234,7 +232,6 @@ $HighToLow$
 $Formating$</query>
         </search>
         <option name="drilldown">cell</option>
-        <option name="refresh.display">progressbar</option>
         <format type="color" field="Severity">
           <colorPalette type="map">{"High":#D41F1F,"Medium":#D94E17,"Low":#CBA700}</colorPalette>
         </format>
@@ -243,7 +240,7 @@ $Formating$</query>
           <scale type="minMidMax"></scale>
         </format>
         <drilldown>
-          <link target="_blank">search?q=index%3Dimefdm%20sourcetype%3D%22zeek%3A*%3Ajson%22%0A%5B%20search%20index%3Dimefdm%20sourcetype%3D%22zeek%3Aconn%3Ajson%22%20AND%20community_id%3D%22$cid$%22%0A%7C%20table%20uid%0A%7C%20format%5D%0A%7C%20sort%20_time&amp;earliest=$time.earliest$&amp;latest=$time.latest$</link>
+          <link target="_blank">search?q=index%3Dimefdm%20sourcetype%3D%22zeek%3A*%3Ajson%22%0A%5B%20search%20index%3Dimefdm%20sourcetype%3D%22zeek%3Aconn%3Ajson%22%20AND%20community_id%3D%22$cid$%22%0A%7C%20table%20uid%0A%7C%20format%5D%0A%7C%20sort%20_time%0A%7C%20appendpipe%20%5B%7C%20stats%20count%20%7C%20where%20count%3D0%20%7C%20eval%20community_id%3D%22No%20Instances%22%5D&amp;earliest=$time.earliest$&amp;latest=$time.latest$</link>
         </drilldown>
       </table>
     </panel>
@@ -259,6 +256,7 @@ $Formating$</query>
     <panel>
       <title>Unknown External To Internal Traffic Triggering Alerts</title>
       <table>
+        <title>Select An IP</title>
         <search base="TstatsBaseSearch">
           <query>$IPEval$
 | where like (ExternalSouce, "True") AND !like (ExternalDest, "True")
@@ -279,6 +277,7 @@ $Formating$</query>
     <panel>
       <title>Unknown Internal To External Traffic Triggering Alerts</title>
       <table>
+        <title>Select An IP</title>
         <search base="TstatsBaseSearch">
           <query>$IPEval$
 | where !like (ExternalSouce, "True") AND like (ExternalDest, "True")
