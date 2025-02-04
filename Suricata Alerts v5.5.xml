@@ -1,4 +1,4 @@
-<form version="1.1" theme="dark">
+<form version="1.1" theme="dark" onunloadCancelJobs="true">
   <label>Suricata Alert Overview (V5.5)</label>
   <description>V5 Additions: Dashboard Now Integrates Drilldown</description>
   <search id="TstatsBaseSearch">
