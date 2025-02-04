@@ -226,7 +226,7 @@ $Formating$</query>
       <table>
         <search base="TstatsBaseSearch">
           <query>| where like (community_id, "$cid$")
-| table severity, SID, payload_printable, community_id, _time
+| table severity, SID, src_ip, dest_ip, payload_printable, community_id, _time
 $HighToLow$
 $Formating$</query>
         </search>
