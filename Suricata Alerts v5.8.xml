@@ -1,5 +1,5 @@
 <form version="1.1" theme="dark" onunloadCancelJobs="true">
-  <label>Suricata Alert Overview (V5.7)</label>
+  <label>Suricata Alert Overview (V5.8)</label>
   <description>V5 Additions: Dashboard Now Integrates Drilldown</description>
   <search id="TstatsBaseSearch">
     <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto, alerts.sid, alerts.community_id, alerts.payload_printable, _time
@@ -7,17 +7,19 @@
 | stats count by severity, signature, category, src_ip, src_port, dest_ip, dest_port, proto, SID, community_id, payload_printable, _time
 
 ```Filter Out Specific Alerts Here```
-| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"0.0.0.0")
+| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"214.15.10.162")
+| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"214.15.10.163")
+| where !like (signature, "ET EXPLOIT Possible CVE-2015-7547 Large Response to A/AAAA query") AND !like (src_ip, "214.16.10.162")
 
 </query>
     <earliest>$time.earliest$</earliest>
     <latest>$time.latest$</latest>
     <done>
-      <!-- Set Your Zeek Indexes -->
-      <set token="zeek">index</set>
+      <!--Set Your Zeek Indexes -->
+      <set token="zeek">zeek*</set>
       <set token="zeeksourcetype">zeek:*:json</set>
       <set token="zeekconnsourcetype">zeek:conn:json</set>
-      <!-- Set Your Zeek Indexes -->
+      <!--                      -->
       <set token="IPEval">| eval ExternalSouce = case(
 cidrmatch("10.0.0.0/8",src_ip),"False",
 cidrmatch("172.16.0.0/12",src_ip),"False",
@@ -125,21 +127,26 @@ $Formating$</query>
   <row>
     <panel>
       <html>
-        <h2>Unique Alert Breakdown</h2>
-        <h3>Select A SID</h3>
+        <h3></h3>
       </html>
     </panel>
   </row>
   <row>
     <panel>
+      <title>Unique Alert Breakdown</title>
       <table>
+        <title>Select A SID</title>
         <search base="TstatsBaseSearch">
           <query>| stats count by severity, signature, category, SID
 $HighToLow$
 $Formating$</query>
+          <done>
+            <unset token="ip"></unset>
+            <unset token="cid"></unset>
+          </done>
         </search>
-        <option name="link.visible">false</option>
         <option name="drilldown">cell</option>
+        <option name="link.visible">0</option>
         <format type="color" field="Severity">
           <colorPalette type="map">{"High":#D41F1F,"Medium":#E3723A,"Low":#CBA700}</colorPalette>
         </format>
@@ -174,6 +181,10 @@ $Formating$</query>
 | where like (SID, $sid|s$)
 $HighToLow$
 $Formating$</query>
+          <done>
+            <unset token="ip"></unset>
+            <unset token="cid"></unset>
+          </done>
         </search>
         <option name="drilldown">cell</option>
         <option name="link.visible">0</option>
@@ -208,6 +219,9 @@ $Formating$</query>
 | stats count by severity, signature, category, SID, src_ip, src_port, dest_ip, dest_port, proto, community_id
 $HighToLow$
 $Formating$</query>
+          <done>
+            <unset token="cid"></unset>
+          </done>
         </search>
         <option name="drilldown">cell</option>
         <option name="link.visible">0</option>
