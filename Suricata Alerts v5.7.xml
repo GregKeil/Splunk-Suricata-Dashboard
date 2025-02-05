@@ -238,7 +238,7 @@ $Formating$</query>
       <table>
         <search base="TstatsBaseSearch">
           <query>| where like (community_id, $cid|s$)
-| eval Time=strftime(_time, "%m/%d/%Y:%H:%M:%S")
+| eval Time=_time
 | table severity, SID, src_ip, dest_ip, payload_printable, community_id, Time
 $HighToLow$
 $Formating$</query>
@@ -254,7 +254,7 @@ $Formating$</query>
           <scale type="minMidMax"></scale>
         </format>
         <drilldown>
-          <eval token="basetime">strftime($row.Time,"%a %B %d %H:%M:%S.%N %Y")</eval>
+          <set token="basetime">$row.Time$</set>
           <eval token="TimeEarliest">relative_time($basetime$, "-1d")</eval>
           <eval token="TimeLatest">relative_time($basetime$, "+1d")</eval>
           <link target="_blank">search?q=index%3D$zeek|s$%20sourcetype%3D$zeeksourcetype|s$%0A%5B%20search%20index%3D$zeek|s$%20sourcetype%3D$zeekconnsourcetype|s$%20AND%20community_id%3D$cid|s$%0A%7C%20table%20uid%0A%7C%20format%5D%20%0Aearliest%3D$TimeEarliest|s$%20latest%3D$TimeLatest|s$%0A%7C%20sort%20_time&amp;earliest=$TimeEarliest$&amp;latest=$TimeLatest$</link>
