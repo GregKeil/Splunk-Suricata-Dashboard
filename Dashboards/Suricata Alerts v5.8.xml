@@ -7,9 +7,8 @@
 | stats count by severity, signature, category, src_ip, src_port, dest_ip, dest_port, proto, SID, community_id, payload_printable, _time
 
 ```Filter Out Specific Alerts Here```
-| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"214.15.10.162")
-| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"214.15.10.163")
-| where !like (signature, "ET EXPLOIT Possible CVE-2015-7547 Large Response to A/AAAA query") AND !like (src_ip, "214.16.10.162")
+```| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"1.1.1.1")```
+
 
 </query>
     <earliest>$time.earliest$</earliest>
