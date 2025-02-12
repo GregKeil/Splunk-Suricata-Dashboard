@@ -3,12 +3,12 @@
   <search id="TstatsBaseSearch">
     <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto, alerts.sid, alerts.community_id, alerts.payload_printable, _time
 | rename alerts.severity AS severity, alerts.signature AS signature, alerts.category AS category, alerts.src_ip AS src_ip, alerts.src_port AS src_port, alerts.dest_ip AS dest_ip, alerts.dest_port AS dest_port, alerts.proto AS proto, alerts.sid AS SID, alerts.community_id AS community_id, alerts.payload_printable AS payload_printable
-| where like (src_ip, $ip|s$) OR like (dest_ip, $ip|s$)
 | stats count by severity, signature, category, src_ip, src_port, dest_ip, dest_port, proto, SID, community_id, payload_printable, _time
+| where like (src_ip, $ip|s$) OR like (dest_ip, $ip|s$)
     </query>
     <earliest>$Time.earliest$</earliest>
     <latest>$Time.latest$</latest>
-    <done>
+    <progress>
       <!--Set Your Zeek Indexes -->
       <set token="zeek">zeek*</set>
       <set token="zeeksourcetype">zeek:*:json</set>
@@ -18,7 +18,7 @@
 | eval sorter=case(severity="High",1,severity="Medium",2,severity="Low",3)
 | sort by sorter,-count
 | fields - sorter</set>
-      <set token="Format">| appendpipe [| stats count | where count=0 | eval severity="No Instances Found"]
+      <set token="Formating">| appendpipe [| stats count | where count=0 | eval severity="No Instances Found"]
 | rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol, community_id AS "Community ID"</set>
       <set token="HighPort">| eval src_port=tonumber(src_port)
 | eval dest_port=tonumber(dest_port)
@@ -29,7 +29,7 @@
 | where (src_port &lt; tonumber(1025) OR src_port = "High Port") AND (dest_port &lt; tonumber(1025) OR dest_port = "High Port")</set>
       <unset token="sid"></unset>
       <unset token="cid"></unset>
-    </done>
+    </progress>
   </search>
   <fieldset submitButton="true" autoRun="true">
     <input type="time" token="Time">
