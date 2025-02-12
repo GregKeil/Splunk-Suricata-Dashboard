@@ -217,7 +217,6 @@ $Formating$</query>
             <unset token="cid"></unset>
           </done>
           <query>| where like (SID, $sid|s$)
-| stats count by severity, signature, category, SID, src_ip, src_port, dest_ip, dest_port, proto
 $HighPort$
 | stats count by severity, signature, category, SID, src_ip, src_port, dest_ip, dest_port, proto
 $HighToLow$
@@ -255,7 +254,6 @@ $Formating$</query>
             <unset token="cid"></unset>
           </done>
           <query>| where like (src_ip, $ip|s$) OR like (dest_ip, $ip|s$)
-| stats count by severity, signature, category, SID, src_ip, src_port, dest_ip, dest_port, proto, community_id
 $HighPort$
 | stats count by severity, signature, category, SID, src_ip, src_port, dest_ip, dest_port, proto, community_id
 $HighToLow$
