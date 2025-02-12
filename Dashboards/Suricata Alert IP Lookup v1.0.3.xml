@@ -41,6 +41,8 @@
     </input>
     <input type="text" token="ip">
       <label>IP Lookup</label>
+      <default></default>
+      <initialValue>1.1.1.1</initialValue>
     </input>
   </fieldset>
   <row>
@@ -59,7 +61,7 @@
   <row>
     <panel>
       <html>
-        <h3></h3>
+        <h3/>
       </html>
     </panel>
   </row>
