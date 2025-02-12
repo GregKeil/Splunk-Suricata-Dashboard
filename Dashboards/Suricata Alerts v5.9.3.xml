@@ -1,5 +1,5 @@
 <form version="1.1" theme="dark" onunloadCancelJobs="true">
-  <label>Suricata Alert Overview (V5.9.2)</label>
+  <label>Suricata Alert Overview (V5.9.3)</label>
   <description>V5 Additions: Dashboard Now Integrates Drilldown</description>
   <search id="TstatsBaseSearch">
     <query>| tstats summariesonly=f count from datamodel=Suricata_Suite.alerts by alerts.severity, alerts.signature, alerts.category, alerts.src_ip, alerts.src_port, alerts.dest_ip, alerts.dest_port, alerts.proto, alerts.sid, alerts.community_id, alerts.payload_printable, _time
@@ -8,7 +8,6 @@
 
 ```Filter Out Specific Alerts Here```
 ```| where !like (signature, "ET DNS Query for .cc TLD") AND !like (dest_ip,"1.1.1.1")```
-
 </query>
     <earliest>$time.earliest$</earliest>
     <latest>$time.latest$</latest>
@@ -38,8 +37,6 @@ match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")</set>
 | fields - sorter</set>
       <set token="Formating">| appendpipe [| stats count | where count=0 | eval severity="No Instances Found"]
 | rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol, community_id AS "Community ID"</set>
-      <set token="FloodCheckFormat">| appendpipe [| stats count | where count=0 | eval severity="Possible Result Flood"]
-| rename severity AS Severity, count AS Count, signature AS Signature, category AS Category, src_ip AS Source, dest_ip AS Destination, src_port AS "Source Port", dest_port AS "Destination Port", proto AS Protocol, community_id AS "Community ID"</set>
       <set token="HighPort">| eval src_port=tonumber(src_port)
 | eval dest_port=tonumber(dest_port)
 | appendpipe [where src_port &gt; 1024 | eval src_port = "High Port"]
@@ -55,7 +52,7 @@ match(src_ip,"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"),"True")</set>
       <unset token="sid"></unset>
       <unset token="ip"></unset>
       <unset token="cid"></unset>
-      <unset token="showscanner"></unset>
+      <set token="showscanner">ShowMe</set>
     </done>
   </search>
   <fieldset submitButton="true" autoRun="true">
@@ -148,8 +145,8 @@ $Formating$</query>
 
 $ScannerQuery$</query>
           <done>
-            <condition match="$job.resultCount$ != 0">
-              <set token="showscanner">show</set>
+            <condition match="$job.resultCount$ == 0">
+              <unset token="showscanner"></unset>
             </condition>
           </done>
         </search>
@@ -224,7 +221,7 @@ $Formating$</query>
 $HighPort$
 | stats count by severity, signature, category, SID, src_ip, src_port, dest_ip, dest_port, proto
 $HighToLow$
-$FloodCheckFormat$</query>
+$Formating$</query>
         </search>
         <option name="drilldown">cell</option>
         <option name="link.visible">0</option>
@@ -262,7 +259,7 @@ $FloodCheckFormat$</query>
 $HighPort$
 | stats count by severity, signature, category, SID, src_ip, src_port, dest_ip, dest_port, proto, community_id
 $HighToLow$
-$FloodCheckFormat$</query>
+$Formating$</query>
         </search>
         <option name="drilldown">cell</option>
         <option name="link.visible">0</option>
@@ -284,7 +281,7 @@ $FloodCheckFormat$</query>
     <panel>
       <html>
         <h2>Log Payload Breakdown</h2>
-        <h3>Select A Log To View The Full Communication In Zeek</h3>
+        <h3>Select A Log To Pivot Outside The Dashboard Into Zeek</h3>
       </html>
     </panel>
   </row>
@@ -294,9 +291,11 @@ $FloodCheckFormat$</query>
         <search base="TstatsBaseSearch">
           <query>| where like (community_id, $cid|s$)
 | eval Time=_time
+| appendpipe[| where payload_printable="" | eval payload_printable="No Payload"]
+| where !like (payload_printable, "")
 | table severity, SID, src_ip, dest_ip, payload_printable, community_id, Time
 $HighToLow$
-$FloodCheckFormat$</query>
+$Formating$</query>
         </search>
         <option name="drilldown">cell</option>
         <option name="link.visible">0</option>
