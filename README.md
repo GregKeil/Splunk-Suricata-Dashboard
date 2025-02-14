@@ -1,5 +1,5 @@
-# Suricata Alert Dashboard For Splunk
-This is a dashboard designed to provide Suricata alert information to analysts in the most readable format
+# Suricata Alert Dashboards For Splunk
+These dashboards are designed to provide Suricata alert information to analysts in the most readable format
 
 ## Requirements & Recommendations:
 ### Requirements:
